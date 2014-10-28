@@ -4,11 +4,15 @@ twitterNodeSandbox
 Sandbox for playing with twitter in node
 
 [Twitter REST API](https://dev.twitter.com/rest/public)
+
 [Twitter Streaming API](https://dev.twitter.com/streaming/overview)
 
 [Twitter Tweet Format](https://dev.twitter.com/overview/api/tweets)
+
 [Twitter Tweet Entities](https://dev.twitter.com/overview/api/entities-in-twitter-objects)
+
 [Twitter Search](https://dev.twitter.com/rest/reference/get/search/tweets)
+
 [Twitter Search Query Operators](https://dev.twitter.com/rest/public/search)
 
 node-twitter-driver
