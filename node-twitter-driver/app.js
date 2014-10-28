@@ -66,10 +66,10 @@ twitterRestClient.statusesHomeTimeline({/*count:5*/}, function(error, result) {
 function extractImages(element,cb) {
   var mediaURLArray=[]
   if ( element.entities['media'] ) {
-    var mediaEntities = element.entities['media']
+    var mediaEntities = element.entities['media'] //there is also a hashtags entity.
     //loop over the media entities and if there is a photo push it into our array		      
     mediaEntities.forEach(function(element,index,fullArray) { 
-      if ( element.type === "photo") { 
+      if ( element.type === "photo") {  //currently (Mon Oct 27 10:49:24 EDT 2014) there is only a `photo` type according to the API
 	mediaURLArray.push(element.media_url)
       }
     })
@@ -106,12 +106,12 @@ console.log("results for :"+query)
                       //if we found photoes
 		      if (typeof mediaURLArray !== 'undefined'
                         && mediaURLArray.len >1){
-		        console.log(element.user.name+":"+element.text+":")
+		        console.log(element.user.name+":"+element.text+": photo elements found:")
                         mediaURLArray.forEach(function(element,index,fullArray) {
                           console.log("  media:"+element)
                         })
                       } else { 
-		        console.log(element.user.name+":"+element.text)
+		        console.log(element.user.name+":"+element.text+":"+mediaURLArray)
 		      }
                     })
                   } else {
@@ -122,3 +122,38 @@ console.log("results for :"+query)
 
     }
 });
+
+var twitterStreamClient = new Twitter.StreamClient(
+  process.env.TWITTER_CONSUMER_KEY, 
+  process.env.TWITTER_CONSUMER_SECRET,
+  process.env.TWITTER_ACCESS_TOKEN_KEY,
+  process.env.TWITTER_ACCESS_TOKEN_SECRET
+);
+
+twitterStreamClient.on('close', function() {
+    console.log('Connection closed.');
+});
+twitterStreamClient.on('end', function() {
+    console.log('End of Line.');
+});
+twitterStreamClient.on('error', function(error) {
+    console.log('Error: ' + (error.code ? error.code + ' ' + error.message : error.message));
+});
+twitterStreamClient.on('tweet', function(tweet) {
+//    console.log(tweet);
+                    extractImages(tweet,function(mediaURLArray){
+                      //if we found photoes
+		      if (typeof mediaURLArray !== 'undefined'
+                        && mediaURLArray.len >1){
+		        console.log(tweet.user.name+":"+tweet.text+":")
+                        mediaURLArray.forEach(function(element,index,fullArray) {
+                          console.log("  media:"+element)
+                        })
+                      } else { 
+		        console.log(tweet.user.name+":"+tweet.text)
+		      }
+                    })
+
+});
+
+twitterStreamClient.start(['inktober', 'sketch_dailies']);
