@@ -1,0 +1,6 @@
+var TIR=require('./app.js')
+//var tir = new TIR('cuckoo5egg')
+var tir = new TIR('ericcanete')
+//tir.downloadUserImages()
+//tir.getFriendsList()
+tir.getFriendImages()
