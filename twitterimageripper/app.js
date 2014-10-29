@@ -19,16 +19,72 @@ function extractImages(element,cb) {
 }
 
 
+ var twitterRestClient = new Twitter.RestClient(
+    process.env.TWITTER_CONSUMER_KEY,
+    process.env.TWITTER_CONSUMER_SECRET,
+    process.env.TWITTER_ACCESS_TOKEN_KEY,
+    process.env.TWITTER_ACCESS_TOKEN_SECRET
+);
+twitterRestClient.usersLookup({},function(error,result){
+    if (error)
+    {
+	console.log('Error: ' + (error.code ? error.code + ' ' + error.message : error.message));
+    }
+
+    if (result)
+    {
+	result.forEach(function(element,index,fullArray) {
+	    if (typeof element.user !== 'undefined'
+		&& typeof element.user.name !=='undefined'
+		&& typeof  element.text!== 'undefined') {
+		console.log(element.user.name)
+		console.log(element.user.screen_name)
+	    }
+	})
+    }
+
+})
+// twitterRestClient.friendsIds({}, function(error, result) {
+//     if (error)
+//     {
+// 	console.log('Error: ' + (error.code ? error.code + ' ' + error.message : error.message));
+//     }
+
+//     if (result)
+//     {
+// 	//sort the results by user name (asc order)
+// 	result.sort(function(a,b) {
+// 	    if (a.user.name > b.user.name) {
+// 		return 1
+// 	    } else {
+// 		return -1
+// 	    }
+// 	})
+// 	result.forEach(function(element,index,fullArray) {
+// 	    if (typeof element.user !== 'undefined'
+// 		&& typeof element.user.name !=='undefined'
+// 		&& typeof  element.text!== 'undefined') {
+// 		console.log(element.user.name)
+// 		console.log(element.user.screen_name)
+// 	    }
+// 	})
+//     }
+// })		      
+
+
 var twitterSearchClient = new Twitter.SearchClient(
   process.env.TWITTER_CONSUMER_KEY, 
   process.env.TWITTER_CONSUMER_SECRET,
   process.env.TWITTER_ACCESS_TOKEN_KEY,
   process.env.TWITTER_ACCESS_TOKEN_SECRET
 );
-//var query='inktober filter:images'
-//var query='from:ericcanete filter:images'
-//var query='from:fabien_mense filter:images'
-var query='from:mrjakeparker+OR+from:rafchu+OR+from:fabien_mense+OR+from:ericcanete+OR+from:skottieyoung filter:images' //another method could be to use twitter lists and grab tweets from that list
+// //var query='inktober filter:images'
+// //var query='from:ericcanete filter:images'
+// //var query='from:fabien_mense filter:images'
+var query='from:mrjakeparker+OR+from:rafchu+OR+from:fabien_mense+OR+from:ericcanete+OR+from:skottieyoung+OR+from:coryloftis+OR+from:kevinwada+OR+from:kindachinese+OR+from:bill_otomo+OR+from:cii+OR+from:gobite+OR+from:catsuka+OR+from:karlkerschl+OR+from:higallerygerard+OR+from:kristaferanka+OR+from:terrydodsonart+OR+from:inkybat+OR+from:zacgormania+OR+from:2dbean+OR+from:humberto_ramos+OR+from:leinilyu+OR+from:audreykawasaki+OR+from:jamesharren1+OR+from:taramcpherson+OR+from:jimlee+OR+from:royalboiler+OR+from:ah_adam_hughes+OR+from:paulsmithdraws+OR+from:gingerhazingphilnotojock4twenty+OR+from:chrissamnee+OR+from:jimmahfood+OR+from:sara_pichelli+OR+from:nthonyholden2dcale+OR+from:jcaffoe+OR+from:nimasprout+OR+from:allisonsmithart+OR+from:tnsk+OR+from:bengal_art filter:images' //another method could be to use twitter lists and grab tweets from that list
+query='from:coryloftis+OR+from:kevinwada+OR+from:kindachinese+OR+from:bill_otomo+OR+from:cii+OR+from:gobite+OR+from:catsuka+OR+from:karlkerschl+OR+from:higallerygerard+OR+from:kristaferanka+OR+from:terrydodsonart+OR+from:inkybat+OR+from:zacgormania+OR+from:2dbean+OR+from:humberto_ramos+OR+from:leinilyu+OR+from:audreykawasaki filter:images' //another method could be to use twitter lists and grab tweets from that list
+//query ='from:jamesharren1+OR+from:taramcpherson+OR+from:jimlee+OR+from:royalboiler+OR+from:ah_adam_hughes+OR+from:paulsmithdraws+OR+from:gingerhazingphilnotojock4twenty+OR+from:chrissamnee+OR+from:jimmahfood+OR+from:sara_pichelli+OR+from:nthonyholden2dcale+OR+from:jcaffoe+OR+from:nimasprout+OR+from:allisonsmithart+OR+from:tnsk+OR+from:bengal_art filter:images'
+//query ='from:bengal_art filter:images' 
 twitterSearchClient.search({'q':query,'count':25},function(error,result) {
 if (error)
     {
