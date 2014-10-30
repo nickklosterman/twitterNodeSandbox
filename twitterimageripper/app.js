@@ -212,7 +212,7 @@ TwitterImageRipper.prototype.saveImages=function(screen_name){
               && mediaURLArray.length >0){
 	      //console.log(element.user.name+"_"+element.id_str)
               var filename = element.user.name+"_"+element.id_str
-              mediaURLArray.forEach(function(element,index,fullArray) {
+              mediaURLArray.forEach(function(element,index,fullArray) {  //save off message text as well? Then can merge the image and text using IM. 
                 console.log("  media:"+element)
                 that.saveFile(element,filename)
               })
@@ -287,29 +287,37 @@ TwitterImageRipper.prototype.saveImages=function(screen_name){
 // });
 
 TwitterImageRipper.prototype.saveFile = function(url,filename) {
-  var imageStream=fs.createWriteStream(filename)
-  imageStream.on('close',function(){
-    console.log("Writing of "+filename+" done.")
-  })
+  if ( fs.existsSync(filename) ) {
+    console.log(filename+" already exists. Skipping.")
+} else {
+    var imageStream=fs.createWriteStream(filename)
+    imageStream.on('close',function(){
+      console.log("Writing of "+filename+" done.")
+    })
 
-  //tack on `:large` so we get the large image
-  var options = {url:url+":large",headers:{ 'User-Agent':'request'}}
-  var imagerequest=request(options,function(err,resp,body) {
-                     if (err){
-		       if (err.code === 'ECONNREFUSED') {
-			 console.error(url+'Refused connection');
-		       } else if (err.code==='ECONNRESET') {
-			 console.error(url+'reset connection')
-		       } else if (err.code==='ENOTFOUND') {
-			 console.error(url+'enotfound')
-		       } else {
-			 console.log(url+err);
-			 console.log(err.stack);
+    //tack on `:large` so we get the large image
+    var options = {url:url+":large",headers:{ 'User-Agent':'request'}}
+    var imagerequest=request(options,function(err,resp,body) {
+                       if (err){
+		         if (err.code === 'ECONNREFUSED') {
+			   console.error(url+'Refused connection');
+		         } else if (err.code==='ECONNRESET') {
+			   console.error(url+'reset connection')
+		         } else if (err.code==='ENOTFOUND') {
+			   console.error(url+'enotfound')
+		         } else {
+			   console.log(url+err);
+			   console.log(err.stack);
+		         }
+                         this.saveFile(url,filename);//call ourself again if there was an error (mostlikely due to hitting the server too hard)
 		       }
-                       this.saveFile(url,filename);//call ourself again if there was an error (mostlikely due to hitting the server too hard)
-		     }
-                   })
-  imagerequest.pipe(imageStream)
+                     })
+    imagerequest.pipe(imageStream)
+  }
 }
 
 module.exports = TwitterImageRipper
+
+
+//TODO: work on spidering of 
+//TODO: work on ranking media based on likes/retweets/comments
