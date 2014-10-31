@@ -5,8 +5,14 @@ var tir = new TIR('ericcanete')
 //tir.getFriendsList()
 tir.getFriendImages()
 
+
 //Output the time the program completed execution http://nodejs.org/api/process.html#process_event_exit
 process.on('exit',function() {
   var exitTime = new Date()
   console.log(exitTime.toString())
 })
+
+
+//Example using a hashtag search
+var tir2 = new TIR('')
+tir2.saveImages('#inktober')

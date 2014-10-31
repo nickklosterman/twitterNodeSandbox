@@ -9,6 +9,8 @@ Sandbox for playing with twitter in node
 
 [Twitter Tweet Format](https://dev.twitter.com/overview/api/tweets)
 
+[Twitter User Format](https://dev.twitter.com/overview/api/users)
+
 [Twitter Tweet Entities](https://dev.twitter.com/overview/api/entities-in-twitter-objects)
 
 [Twitter Search](https://dev.twitter.com/rest/reference/get/search/tweets)
