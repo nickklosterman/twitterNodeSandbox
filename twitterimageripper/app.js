@@ -14,6 +14,9 @@ function TwitterImageRipper(screen_name){
   this.friendsScreenNameList = []
   this.friendsList = []
   this.requestCounter = 0
+  this.numberOfRequests = 0
+  this.flag429 = false
+  this.imageSize = 'large'
 
   //is it bad practice to automatically create a client even if it isin't going to be used?
   this.twitterRestClient = new Twitter.RestClient(
@@ -92,19 +95,33 @@ TwitterImageRipper.prototype.usersLookup = function (method) {
 	})
       }
     })
-  break;
+    break;
   }
 }
 
 //Meant to be run to get all friends
 TwitterImageRipper.prototype.getFriendsList = function(result,cb) {
+  // if (typeof cb === 'undefined'
+  //   || typeof cb !== 'function' ) {
+  //   console.log("No Callback provided")
+  //   cb = function() {}
+  // } 
   if (typeof result !== 'undefined') {
     var next_cursor_str = result.next_cursor_str?result.next_cursor_str:'-1'
   }
   var that = this // we need to capture off our 'this' and use that inside the twitterRestClient, otherwise we'll be using the twitterRestClient's this
   this.twitterRestClient.friendsList({'screen_name':this.screen_name,'count':200,'cursor':next_cursor_str},function(error,result){
     if (error) {
-      console.trace('Error: ' + (error.code ? error.code + ' ' + error.message : error.message));
+      if (error.code === 429 /* too many requests */)
+      {
+        this.flag429 = true // instead of calling saveImages, call a function that clears the flag and then calls saveImages?
+        console.log("Error 429. Retry in 15 minutes when new queries allowed")
+        //if there were too many requests we call the same function again but after a 15 minute timeout
+        setTimeout( that.getFriendsList.bind(that),15*60*1000,result,cb )
+      } else {
+
+        console.trace('Error: ' + (error.code ? error.code + ' ' + error.message : error.message));
+      }
     }
     if (result) {
       result.users.forEach(function(element,index,fullArray) {
@@ -126,70 +143,45 @@ TwitterImageRipper.prototype.getFriendsList = function(result,cb) {
   })
 }
 
+TwitterImageRipper.prototype.outputFriendsList = function () {
+  this.getFriendsList({'next_cursor_str':'-1'},function( ) {
+    this.friendsList.forEach(function(element,index,fullArray) {
+      if (typeof element.screen_name !== 'undefined'
+        && typeof element.name !== 'undefined') {
+        console.log(element.screen_name+":"+element.name)
+      }
+    })
+  })
+}
+
 TwitterImageRipper.prototype.getFriendsIds = function () {
-// my test case twitter user doesn't have that more than ~20 friends
-this.twitterRestClient.friendsIds({'user_name':this.screen_name,'count':200}, function(error, result) {
+  // my test case twitter user doesn't have that more than ~20 friends
+  this.twitterRestClient.friendsIds({'user_name':this.screen_name,'count':200}, function(error, result) {
     if (error) {
-	console.trace('Error: ' + (error.code ? error.code + ' ' + error.message : error.message));
+      console.trace('Error: ' + (error.code ? error.code + ' ' + error.message : error.message));
     }
     if (result) {
       result.ids.forEach(function(element,index,fullArray) {
 	//console.log(element)
-	})
+      })
       this.getMoreFriendsIds(result)
     }
-})		      
+  })		      
 }
-
-// TwitterImageRipper.prototype.getMoreFriendsIds = function (result) {
-// this.twitterRestClient.friendsIds({'cursor':result.next_cursor_str}, function(error, result) {
-//     if (error) {
-// 	console.log('Error: ' + (error.code ? error.code + ' ' + error.message : error.message));
-//     }
-//     if (result) {
-//       result.ids.forEach(function(element,index,fullArray) {
-// 	console.log(element)
-// 	})
-//       this.getMoreFriendsIds(result.next_cursor_str)
-//     }
-// })		      
-// }
-
-// TwitterImageRipper.prototype.getMoreFriendsList = function(result) {
-// this.twitterRestClient.friendsList({'cursor':result.next_cursor_str}, function(error, result) {
-//     if (error) {
-// 	console.log('Error: ' + (error.code ? error.code + ' ' + error.message : error.message));
-//     }
-//     if (result) {
-//       result.users.forEach(function(element,index,fullArray) {
-// 	console.log(element.screen_name)
-//         console.log(this)
-//         this.friendsScreenNameList.push(element.screen_name)
-// 	})
-//       console.log(result.next_cursor_str)
-//       if (result.next_cursor_str !== "0") {
-//         this.getMoreFriendsList(result)
-//       } else {
-//         this.downloadUserImages()
-//       }
-//     }
-// })		      
-// }
-
 
 
 TwitterImageRipper.prototype.getFriendImages = function () {
-this.getFriendsList({'next_cursor_str':'-1'},this.downloadFriendImages)
-// this.freindsScreenNameList.forEach(function(element,index,fullArray) {
-//   console.log(element)
-// })
+  this.getFriendsList({'next_cursor_str':'-1'},this.downloadFriendImages)
+  // this.freindsScreenNameList.forEach(function(element,index,fullArray) {
+  //   console.log(element)
+  // })
 }
 
 TwitterImageRipper.prototype.downloadFriendImages = function (context) {
-context.friendsScreenNameList.forEach(function(element,index,fullArray){
-  context.saveImages(element)
-  //console.log(element)
-})
+  context.friendsScreenNameList.forEach(function(element,index,fullArray){
+    context.saveImages(element)
+    //console.log(element)
+  })
 }
 
 TwitterImageRipper.prototype.downloadUserImages = function () {
@@ -197,7 +189,7 @@ TwitterImageRipper.prototype.downloadUserImages = function () {
 }
 
 TwitterImageRipper.prototype.saveImages=function(screen_name){
-var query
+  var query
   if (screen_name[0] === "#") { //if search is a hashtag search
     query = screen_name+' filter:images'
   } else {
@@ -208,6 +200,7 @@ var query
     if (error) {
       if (error.code === 429 /* too many requests */)
       {
+        this.flag429 = true // instead of calling saveImages, call a function that clears the flag and then calls saveImages?
         console.log("Error 429. Retry in 15 minutes when new queries allowed")
         //if there were too many requests we call the same function again but after a 15 minute timeout
         setTimeout( that.saveImages.bind(that),15*60*1000,screen_name )
@@ -224,11 +217,11 @@ var query
           that.extractImages(element,function(mediaURLArray){
             //if we found photoes
 	    if (typeof mediaURLArray !== 'undefined'
-              && mediaURLArray.length >0){
+              && mediaURLArray.length > 0){
 	      //console.log(element.user.name+"_"+element.id_str)
               var filename = element.user.name+"_"+element.id_str
               mediaURLArray.forEach(function(element,index,fullArray) {  //save off message text as well? Then can merge the image and text using IM. 
-                console.log("  media:"+element)
+                console.log(" media:"+element)
                 that.saveFile(element,filename)
               })
             } else { 
@@ -245,13 +238,6 @@ var query
     }
   });
 }
-
-// var twitterSearchClient = new Twitter.SearchClient(
-//   process.env.TWITTER_CONSUMER_KEY, 
-//   process.env.TWITTER_CONSUMER_SECRET,
-//   process.env.TWITTER_ACCESS_TOKEN_KEY,
-//   process.env.TWITTER_ACCESS_TOKEN_SECRET
-// );
 // // //var query='inktober filter:images'
 // // //var query='from:ericcanete filter:images'
 // // //var query='from:fabien_mense filter:images'
@@ -259,61 +245,67 @@ var query
 // query='from:coryloftis+OR+from:kevinwada+OR+from:kindachinese+OR+from:bill_otomo+OR+from:cii+OR+from:gobite+OR+from:catsuka+OR+from:karlkerschl+OR+from:higallerygerard+OR+from:kristaferanka+OR+from:terrydodsonart+OR+from:inkybat+OR+from:zacgormania+OR+from:2dbean+OR+from:humberto_ramos+OR+from:leinilyu+OR+from:audreykawasaki filter:images' //another method could be to use twitter lists and grab tweets from that list
 // //query ='from:jamesharren1+OR+from:taramcpherson+OR+from:jimlee+OR+from:royalboiler+OR+from:ah_adam_hughes+OR+from:paulsmithdraws+OR+from:gingerhazingphilnotojock4twenty+OR+from:chrissamnee+OR+from:jimmahfood+OR+from:sara_pichelli+OR+from:nthonyholden2dcale+OR+from:jcaffoe+OR+from:nimasprout+OR+from:allisonsmithart+OR+from:tnsk+OR+from:bengal_art filter:images'
 // //query ='from:bengal_art filter:images' 
-// twitterSearchClient.search({'q':query,'count':25},function(error,result) {
-// if (error)
-//     {
-//         console.log('Error: ' + (error.code ? error.code + ' ' + error.message : error.message));
-//     }
-//     if (result)
-//     {
-// console.log("-------------------------")
-// console.log("results for :"+query)
-// //        console.log(result);
-//     result.statuses.forEach(function(element,index,fullArray) {
-// 	          if (typeof element.user !== 'undefined'
-// 		    && typeof element.user.name !=='undefined'
-// 		    && typeof  element.text!== 'undefined') {
-//                     //id_str can be used in a filename as it is a unqiue identifier to the producing tweet. i think you would need user_name + id_str; useful for naming images stripped from tweets.
 
-//                     extractImages(element,function(mediaURLArray){
-//                       //if we found photoes
-// 		      if (typeof mediaURLArray !== 'undefined'
-//                         && mediaURLArray.length >0){
-// //		        console.log(element.user.name+":"+element.text+": photo elements found:")
-// 		        console.log(element.user.name+"_"+element.id_str)
-//                         var filename = element.user.name+"_"+element.id_str
-//                         mediaURLArray.forEach(function(element,index,fullArray) {
-//                           console.log("  media:"+element)
-//                           saveFile(element,filename)
-//                         })
-//                       } else { 
-// //		        console.log(element.user.name+":"+element.text+":"+mediaURLArray)
-// 		        console.log(element.user.name)
-//                         console.log(mediaURLArray.length)
-// 		      }
-//                     })
-//                   } else {
-// 		    console.log('bad item')
-// 	          }
 
-//     })
 
-//     }
-// });
+TwitterImageRipper.prototype.getFriendWebsites = function() {
+  //this.getFriendsList({'next_cursor_str':'-1'},this.getFriendWebsites2)
+  this.getFriendsList({},this.getFriendWebsites2)
+}
+
+TwitterImageRipper.prototype.getFriendWebsites2 = function() {
+  if (this.friendsList
+    && this.friendsList.length > 0 ){
+    this.friendsList.forEach(function(element,index,fullArray) {
+      if (typeof element.name !== 'undefined'
+        && typeof element.screen_name !== 'undefined'
+        && typeof element.url !== 'undefined' ) {
+        console.log(element.name+":"+element.screen_name+":"+element.url)
+        if ( typeof element.entities !== 'undefined'
+          && typeof element.entities.url !== 'undefined'
+          && typeof element.entities.url.urls === 'Array'
+           ) {
+          element.entities.url.urls.forEach(function(element,index,fullArray) {
+            console.log(" "+element.url)
+          })
+        }
+      }
+    })
+  }
+}
+
+TwitterImageRipper.prototype.setImageSizeToDownload = function(imageSize) {
+  if (imageSize === 'large'
+    || imageSize === 'medium'
+    || imageSize === 'small'
+    || imageSize === 'thumb' ) {
+    this.imageSize = imageSize
+  } else {
+    console.log("Invalid size provided.")
+    console.log("Image size not changed.")
+  }
+}
 
 TwitterImageRipper.prototype.saveFile = function(url,filename) {
+
+  var that = this;
   if ( fs.existsSync(filename) ) {
     console.log(filename+" already exists. Skipping.")
-} else {
+    that.requestCounter++
+    console.log(that.requestCounter+"/"+that.friendsList.length)
+
+  } else {
     var imageStream=fs.createWriteStream(filename)
     imageStream.on('close',function(){
       console.log("Writing of "+filename+" done.")
+      that.requestCounter++  ; //the requestCounter won't match the friendsList bc for each frined there might be 0+ images to obtain.
+      console.log(that.requestCounter+"/"+that.friendsList.length)
     })
 
     //tack on `:large` so we get the large image
-  var options = {url:url+":large",headers:{ 'User-Agent':'request'}}
-  //do http requests for the image count against our limit? They aren't using the api,
-  console.log(options) 
+    var options = {url:url+":"+this.imageSize,headers:{ 'User-Agent':'request'}}
+    //do http requests for the image count against our limit? They aren't using the api,
+    //console.log(options) 
     var imagerequest=request(options,function(err,resp,body) {
                        if (err){
 		         if (err.code === 'ECONNREFUSED') {
@@ -333,10 +325,7 @@ TwitterImageRipper.prototype.saveFile = function(url,filename) {
   }
 }
 
-
-
 module.exports = TwitterImageRipper
-
 
 //TODO: work on spidering of 
 //TODO: work on ranking media based on likes/retweets/comments
