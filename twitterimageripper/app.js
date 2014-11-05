@@ -6,7 +6,9 @@ env = process.env.NODE_ENV || 'development';
 //var Twitter = require('node-twitter');
 var Twitter = require('../../node-twitter/lib/Twitter');
 var fs = require('fs'),
-    request = require('request')
+    request = require('request'),
+    http = require('http'),
+    https = require('https')
 
 
 function TwitterImageRipper(screen_name){
@@ -119,7 +121,6 @@ TwitterImageRipper.prototype.getFriendsList = function(result,cb) {
         //if there were too many requests we call the same function again but after a 15 minute timeout
         setTimeout( that.getFriendsList.bind(that),15*60*1000,result,cb )
       } else {
-
         console.trace('Error: ' + (error.code ? error.code + ' ' + error.message : error.message));
       }
     }
@@ -276,11 +277,16 @@ TwitterImageRipper.prototype.getFriendWebsites2 = function(context) {
   if (typeof context.friendsList !== 'undefined'
     && context.friendsList.length > 0 ){
     context.friendsList.forEach(function(element,index,fullArray) {
+//if (index < 5 ) {
       if (typeof element.name !== 'undefined'
         && typeof element.screen_name !== 'undefined'
           && typeof element.url !== 'undefined' ) {
-//	  && typeof element.expanded_url !== 'undefined' ) {
-          console.log(element.name+":"+element.screen_name+":"+element.url);//+":"+element.expanded_url)
+        //	  && typeof element.expanded_url !== 'undefined' ) {
+        if ( element.url !== null ) {
+          console.log(element.name+":"+element.screen_name+":"+element.url+":"+context.findRealWebsiteURL(element.url));//+":"+element.expanded_url) 
+        } else {
+          console.log(element.name+":"+element.screen_name+":No Website Provided")
+        }
         if ( typeof element.entities !== 'undefined'
           && typeof element.entities.url !== 'undefined'
           && typeof element.entities.url.urls === 'Array'
@@ -290,7 +296,84 @@ TwitterImageRipper.prototype.getFriendWebsites2 = function(context) {
           })
         }
       }
+//}
     })
+  }
+}
+
+TwitterImageRipper.prototype.findRealWebsiteURL = function(shortUrl) {
+  var realURL = ""
+  if (false) {
+    //this method would freeze up and never finish. I even stopped it from following https but still it would seem to hang
+    //shortUrl = "http://t.co/UlbQAqtyhX"
+    //http://www.mattlunn.me.uk/blog/2012/05/handling-a-http-redirect-in-node-js/
+    var protocol 
+    if (shortUrl
+      && shortUrl.length > 5) {
+      if (shortUrl[4] === ":") {
+        protocol = http
+      } else if (shortUrl[4] === "s") {
+        protocol = https
+      }
+    }
+    //if (protocol === http) {
+    protocol.get(shortUrl, function (res) {
+      // Detect a redirect
+      if (res.statusCode > 300 && res.statusCode < 400 && res.headers.location) {
+        //console.log(res)
+        console.log(res.headers.location)
+        realURL = res.headers.location
+        if (realURL === "https://www.facebook.com/unsupportedbrowser") {
+
+        }
+      } else {
+        console.log('no redirect')
+      }
+    })
+    //}
+    return realURL
+  }
+  
+  var Http = function (shortUrl) {
+    var protocol 
+    if (shortUrl
+      && shortUrl.length > 5) {
+      if (shortUrl[4] === ":") {
+        protocol = http
+      } else if (shortUrl[4] === "s") {
+        protocol = https
+      }
+    }
+    protocol.get(shortUrl, function (res) {
+      // Detect a redirect
+      if (res.statusCode > 300 && res.statusCode < 400 && res.headers.location) {
+        //console.log(res)
+        console.log(res.headers.location)
+        realURL = res.headers.location
+      } else {
+        console.log('no redirect')
+      }
+    })
+  }
+  
+  //http://www.2ality.com/2012/04/expand-urls.html
+  //user agent string from visiting: http://www.useragentstring.com/
+  if (true) {
+    //TODO: figure out why I get the www.facebook.com/unsupportedbrowser url. I didn't get this when using the above method.
+    request( { method: "HEAD", url: shortUrl, followAllRedirects: true, 'User-Agent':"Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.42 Safari/537.36"},
+             function (error, response) {
+               if (error) {
+                 console.log(error)
+               }
+               if (typeof response !== 'undefined') {
+
+                 if (response.request.href === "https://www.facebook.com/unsupportedbrowser" ) {
+                   Http(shortUrl)
+                 } else {
+                   console.log(response.request.href);
+                 }
+               }
+             });
   }
 }
 
@@ -353,3 +436,5 @@ module.exports = TwitterImageRipper
 //TODO: auto prevent hitting the rate limit of 150 requests
 //TODO: create function to allow image scraping for a input search term, i.e. the constructor parameter could be used as the search term as well.
 //TODO: use setInterval or use a cron job to continually get images.
+//TODO: save off friend list in local storage to prevent having to get it every time.  If changes are found, add them to the local store.
+//TODO: make the app more cli ncurses like such that they can retreive things piecemeal. Get friends list then show their friends or show friend urls etc. or output as html! 

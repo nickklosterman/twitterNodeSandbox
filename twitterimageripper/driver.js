@@ -7,6 +7,7 @@ var tir = new TIR('cuckoo5egg')
 //tir.getFriendImages()
 //tir.getFriendWebsites2()
 tir.getFriendWebsites()
+//tir.findRealWebsiteURL()
 //tir.outputFriendsList()
 
 
