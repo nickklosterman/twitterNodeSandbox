@@ -114,7 +114,7 @@ TwitterImageRipper.prototype.getFriendsList = function(result,cb) {
     if (error) {
       if (error.code === 429 /* too many requests */)
       {
-        this.flag429 = true // instead of calling saveImages, call a function that clears the flag and then calls saveImages?
+        that.flag429 = true // instead of calling saveImages, call a function that clears the flag and then calls saveImages?
         console.log("Error 429. Retry in 15 minutes when new queries allowed")
         //if there were too many requests we call the same function again but after a 15 minute timeout
         setTimeout( that.getFriendsList.bind(that),15*60*1000,result,cb )
@@ -127,15 +127,17 @@ TwitterImageRipper.prototype.getFriendsList = function(result,cb) {
       result.users.forEach(function(element,index,fullArray) {
         //console.log(element)
 	if (typeof element.screen_name !== 'undefined') {
-	  //console.log(element.screen_name)
-          //console.log(that)
-          that.friendsScreenNameList.push(element.screen_name)
-          that.friendsList.push(element)
+	    //console.log(element.screen_name)
+            //console.log(that)
+            that.friendsScreenNameList.push(element.screen_name)
+            that.friendsList.push(element)
 	}
       })
       if (result.next_cursor_str !== '0' ){
-        that.getFriendsList(result,cb)
+          that.getFriendsList(result,cb)
+	  console.log("calling getFriendsList again")
       } else {
+	  console.log("calling callback")
         cb(that) //we need to pass in our context to the callback
       }
     }
@@ -144,14 +146,28 @@ TwitterImageRipper.prototype.getFriendsList = function(result,cb) {
 }
 
 TwitterImageRipper.prototype.outputFriendsList = function () {
-  this.getFriendsList({'next_cursor_str':'-1'},function( ) {
-    this.friendsList.forEach(function(element,index,fullArray) {
-      if (typeof element.screen_name !== 'undefined'
-        && typeof element.name !== 'undefined') {
-        console.log(element.screen_name+":"+element.name)
-      }
+    var that = this
+    this.getFriendsList({'next_cursor_str':'-1'},function () {
+//	console.log(this)
+//	console.log(that)
+	if (typeof that.friendsList !== 'undefined'
+	    && that.friendsList.length > 0 ) {
+	    console.log("this.friendsList"+that.friendsList.length)
+	    that.friendsList.forEach(function(element,index,fullArray) {
+		if (typeof element.screen_name !== 'undefined'
+		    && typeof element.name !== 'undefined') {
+		    console.log(element.screen_name+":"+element.name)
+		}
+	    })
+
+	} else {
+	    console.log("fail")
+	    console.log(typeof that.friendsList)
+	    if (that.friendsList) {
+		console(that.friendsList.length)
+	    }
+	}
     })
-  })
 }
 
 TwitterImageRipper.prototype.getFriendsIds = function () {
@@ -249,18 +265,22 @@ TwitterImageRipper.prototype.saveImages=function(screen_name){
 
 
 TwitterImageRipper.prototype.getFriendWebsites = function() {
-  //this.getFriendsList({'next_cursor_str':'-1'},this.getFriendWebsites2)
-  this.getFriendsList({},this.getFriendWebsites2)
+    this.getFriendsList({'next_cursor_str':'-1'},this.getFriendWebsites2.bind(this))
+  //this.getFriendsList({},this.getFriendWebsites2)
 }
 
-TwitterImageRipper.prototype.getFriendWebsites2 = function() {
-  if (this.friendsList
-    && this.friendsList.length > 0 ){
-    this.friendsList.forEach(function(element,index,fullArray) {
+TwitterImageRipper.prototype.getFriendWebsites2 = function(context) {
+    var that = context
+    //console.log(this)
+    //console.log(that)
+  if (typeof context.friendsList !== 'undefined'
+    && context.friendsList.length > 0 ){
+    context.friendsList.forEach(function(element,index,fullArray) {
       if (typeof element.name !== 'undefined'
         && typeof element.screen_name !== 'undefined'
-        && typeof element.url !== 'undefined' ) {
-        console.log(element.name+":"+element.screen_name+":"+element.url)
+          && typeof element.url !== 'undefined' ) {
+//	  && typeof element.expanded_url !== 'undefined' ) {
+          console.log(element.name+":"+element.screen_name+":"+element.url);//+":"+element.expanded_url)
         if ( typeof element.entities !== 'undefined'
           && typeof element.entities.url !== 'undefined'
           && typeof element.entities.url.urls === 'Array'

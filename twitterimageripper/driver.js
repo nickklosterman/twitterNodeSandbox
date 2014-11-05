@@ -1,11 +1,12 @@
 var TIR=require('./app.js')
 var tir = new TIR('cuckoo5egg')
 //var tir = new TIR('ericcanete')
+//var tir = new TIR('bengal_art')
 //tir.downloadUserImages()
 //tir.getFriendsList()
-tir.getFriendImages()
+//tir.getFriendImages()
 //tir.getFriendWebsites2()
-//tir.getFriendWebsites()
+tir.getFriendWebsites()
 //tir.outputFriendsList()
 
 
