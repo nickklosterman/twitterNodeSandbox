@@ -438,3 +438,4 @@ module.exports = TwitterImageRipper
 //TODO: use setInterval or use a cron job to continually get images.
 //TODO: save off friend list in local storage to prevent having to get it every time.  If changes are found, add them to the local store.
 //TODO: make the app more cli ncurses like such that they can retreive things piecemeal. Get friends list then show their friends or show friend urls etc. or output as html! 
+//TODO: output csv list of data, json?
