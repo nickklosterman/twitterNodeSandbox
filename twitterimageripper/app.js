@@ -237,9 +237,16 @@ TwitterImageRipper.prototype.saveImages=function(screen_name){
               && mediaURLArray.length > 0){
 	      //console.log(element.user.name+"_"+element.id_str)
               var filename = element.user.name+"_"+element.id_str
+              var mediaURLArrayLength = mediaURLArray.length
               mediaURLArray.forEach(function(element,index,fullArray) {  //save off message text as well? Then can merge the image and text using IM. 
                 console.log(" media:"+element)
-                that.saveFile(element,filename)
+                //append the image index to the filename
+                //if the post has multiple photos
+                if (mediaURLArrayLength > 1) {
+                  that.saveFile(element,filename+"_"+index)
+                } else {
+                  that.saveFile(element,filename)
+                }
               })
             } else { 
 	      console.log(element.user.name)
