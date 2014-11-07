@@ -128,17 +128,17 @@ TwitterImageRipper.prototype.getFriendsList = function(result,cb) {
       result.users.forEach(function(element,index,fullArray) {
         //console.log(element)
 	if (typeof element.screen_name !== 'undefined') {
-	    //console.log(element.screen_name)
-            //console.log(that)
-            that.friendsScreenNameList.push(element.screen_name)
-            that.friendsList.push(element)
+	  //console.log(element.screen_name)
+          //console.log(that)
+          that.friendsScreenNameList.push(element.screen_name)
+          that.friendsList.push(element)
 	}
       })
       if (result.next_cursor_str !== '0' ){
-          that.getFriendsList(result,cb)
-	  console.log("calling getFriendsList again")
+        that.getFriendsList(result,cb)
+	console.log("calling getFriendsList again")
       } else {
-	  console.log("calling callback")
+	console.log("calling callback")
         cb(that) //we need to pass in our context to the callback
       }
     }
@@ -147,28 +147,28 @@ TwitterImageRipper.prototype.getFriendsList = function(result,cb) {
 }
 
 TwitterImageRipper.prototype.outputFriendsList = function () {
-    var that = this
-    this.getFriendsList({'next_cursor_str':'-1'},function () {
-//	console.log(this)
-//	console.log(that)
-	if (typeof that.friendsList !== 'undefined'
-	    && that.friendsList.length > 0 ) {
-	    console.log("this.friendsList"+that.friendsList.length)
-	    that.friendsList.forEach(function(element,index,fullArray) {
-		if (typeof element.screen_name !== 'undefined'
-		    && typeof element.name !== 'undefined') {
-		    console.log(element.screen_name+":"+element.name)
-		}
-	    })
-
-	} else {
-	    console.log("fail")
-	    console.log(typeof that.friendsList)
-	    if (that.friendsList) {
-		console(that.friendsList.length)
-	    }
+  var that = this
+  this.getFriendsList({'next_cursor_str':'-1'},function () {
+    //	console.log(this)
+    //	console.log(that)
+    if (typeof that.friendsList !== 'undefined'
+      && that.friendsList.length > 0 ) {
+      console.log("this.friendsList"+that.friendsList.length)
+      that.friendsList.forEach(function(element,index,fullArray) {
+	if (typeof element.screen_name !== 'undefined'
+	  && typeof element.name !== 'undefined') {
+	  console.log(element.screen_name+":"+element.name)
 	}
-    })
+      })
+
+    } else {
+      console.log("fail")
+      console.log(typeof that.friendsList)
+      if (that.friendsList) {
+	console(that.friendsList.length)
+      }
+    }
+  })
 }
 
 TwitterImageRipper.prototype.getFriendsIds = function () {
@@ -237,16 +237,11 @@ TwitterImageRipper.prototype.saveImages=function(screen_name){
               && mediaURLArray.length > 0){
 	      //console.log(element.user.name+"_"+element.id_str)
               var filename = element.user.name+"_"+element.id_str
+              var data = {username: element.user.name, idstr:element.id_str}
               var mediaURLArrayLength = mediaURLArray.length
               mediaURLArray.forEach(function(element,index,fullArray) {  //save off message text as well? Then can merge the image and text using IM. 
                 console.log(" media:"+element)
-                //append the image index to the filename
-                //if the post has multiple photos
-                if (mediaURLArrayLength > 1) {
-                  that.saveFile(element,filename+"_"+index)
-                } else {
-                  that.saveFile(element,filename)
-                }
+                that.saveFile(element,data) //filename+"_"+index+".image")
               })
             } else { 
 	      console.log(element.user.name)
@@ -273,21 +268,21 @@ TwitterImageRipper.prototype.saveImages=function(screen_name){
 
 
 TwitterImageRipper.prototype.getFriendWebsites = function() {
-    this.getFriendsList({'next_cursor_str':'-1'},this.getFriendWebsites2.bind(this))
+  this.getFriendsList({'next_cursor_str':'-1'},this.getFriendWebsites2.bind(this))
   //this.getFriendsList({},this.getFriendWebsites2)
 }
 
 TwitterImageRipper.prototype.getFriendWebsites2 = function(context) {
-    var that = context
-    //console.log(this)
-    //console.log(that)
+  var that = context
+  //console.log(this)
+  //console.log(that)
   if (typeof context.friendsList !== 'undefined'
     && context.friendsList.length > 0 ){
     context.friendsList.forEach(function(element,index,fullArray) {
-//if (index < 5 ) {
+      //if (index < 5 ) {
       if (typeof element.name !== 'undefined'
         && typeof element.screen_name !== 'undefined'
-          && typeof element.url !== 'undefined' ) {
+        && typeof element.url !== 'undefined' ) {
         //	  && typeof element.expanded_url !== 'undefined' ) {
         if ( element.url !== null ) {
           console.log(element.name+":"+element.screen_name+":"+element.url+":"+context.findRealWebsiteURL(element.url));//+":"+element.expanded_url) 
@@ -303,7 +298,7 @@ TwitterImageRipper.prototype.getFriendWebsites2 = function(context) {
           })
         }
       }
-//}
+      //}
     })
   }
 }
@@ -396,14 +391,16 @@ TwitterImageRipper.prototype.setImageSizeToDownload = function(imageSize) {
   }
 }
 
-TwitterImageRipper.prototype.saveFile = function(url,filename) {
-
+TwitterImageRipper.prototype.saveFile = function(url,data/*filename*/) {
+  //url.lastIndexOf('/')
+  var splitURL = url.split('/')
+  var imageFilename = splitURL[splitURL.length-1]
+  var filename=data.username+"_"+data.idstr+"_"+imageFilename
   var that = this;
   if ( fs.existsSync(filename) ) {
     console.log(filename+" already exists. Skipping.")
     that.requestCounter++
     console.log(that.requestCounter+"/"+that.friendsList.length)
-
   } else {
     var imageStream=fs.createWriteStream(filename)
     imageStream.on('close',function(){
@@ -431,6 +428,11 @@ TwitterImageRipper.prototype.saveFile = function(url,filename) {
                          this.saveFile(url,filename);//call ourself again if there was an error (mostlikely due to hitting the server too hard)
 		       }
                      })
+    imageStream.on('error',function() {
+      if (error) {
+        console.log(error)
+      }
+    })
     imagerequest.pipe(imageStream)
   }
 }
@@ -439,9 +441,9 @@ module.exports = TwitterImageRipper
 
 //TODO: work on spidering of 
 //TODO: work on ranking media based on likes/retweets/comments
-//TODO: make getFriendList more generic so that the json object is saved off so we can access other details like the personal website of your followers etc
+//TODO: make getFriendList more generic so that the json object is saved off so we can access other details like the personal website of your followers etc, stick in db? local mongo instance?
 //TODO: auto prevent hitting the rate limit of 150 requests
-//TODO: create function to allow image scraping for a input search term, i.e. the constructor parameter could be used as the search term as well.
+//--TODO: create function to allow image scraping for a input search term, i.e. the constructor parameter could be used as the search term as well.
 //TODO: use setInterval or use a cron job to continually get images.
 //TODO: save off friend list in local storage to prevent having to get it every time.  If changes are found, add them to the local store.
 //TODO: make the app more cli ncurses like such that they can retreive things piecemeal. Get friends list then show their friends or show friend urls etc. or output as html! 
