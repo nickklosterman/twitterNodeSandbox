@@ -16,6 +16,7 @@ Sandbox for playing with twitter in node
 [Twitter Search](https://dev.twitter.com/rest/reference/get/search/tweets)
 
 [Twitter Search Query Operators](https://dev.twitter.com/rest/public/search)
+[SO Questions tagged 'twitter'](http://stackoverflow.com/questions/tagged/twitter)
 
 Twitter Blogs
 ------------

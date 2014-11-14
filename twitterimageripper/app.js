@@ -232,7 +232,7 @@ TwitterImageRipper.prototype.saveImages=function(screen_name){
 	  && typeof  element.id_str !== 'undefined') {
 
           that.extractImages(element,function(mediaURLArray){
-            //if we found photoes
+            //if we found photos
 	    if (typeof mediaURLArray !== 'undefined'
               && mediaURLArray.length > 0){
 	      //console.log(element.user.name+"_"+element.id_str)
@@ -240,7 +240,7 @@ TwitterImageRipper.prototype.saveImages=function(screen_name){
               var data = {username: element.user.name, idstr:element.id_str}
               var mediaURLArrayLength = mediaURLArray.length
               mediaURLArray.forEach(function(element,index,fullArray) {  //save off message text as well? Then can merge the image and text using IM. 
-                console.log(" media:"+element)
+                //console.log(" media:"+element)
                 that.saveFile(element,data) //filename+"_"+index+".image")
               })
             } else { 
@@ -398,9 +398,10 @@ TwitterImageRipper.prototype.saveFile = function(url,data/*filename*/) {
   var filename=data.username+"_"+data.idstr+"_"+imageFilename
   var that = this;
   if ( fs.existsSync(filename) ) {
-    console.log(filename+" already exists. Skipping.")
-    that.requestCounter++
-    console.log(that.requestCounter+"/"+that.friendsList.length)
+    process.stdout.write("X")
+    //    console.log(filename+" already exists. Skipping.")
+    //that.requestCounter++
+    //console.log(that.requestCounter+"/"+that.friendsList.length)
   } else {
     var imageStream=fs.createWriteStream(filename)
     imageStream.on('close',function(){
@@ -413,6 +414,7 @@ TwitterImageRipper.prototype.saveFile = function(url,data/*filename*/) {
     var options = {url:url+":"+this.imageSize,headers:{ 'User-Agent':'request'}}
     //do http requests for the image count against our limit? They aren't using the api,
     //console.log(options) 
+    var that = this
     var imagerequest=request(options,function(err,resp,body) {
                        if (err){
 		         if (err.code === 'ECONNREFUSED') {
@@ -425,7 +427,7 @@ TwitterImageRipper.prototype.saveFile = function(url,data/*filename*/) {
 			   console.log(url+err);
 			   console.log(err.stack);
 		         }
-                         this.saveFile(url,filename);//call ourself again if there was an error (mostlikely due to hitting the server too hard)
+                         that.saveFile(url,filename);//call ourself again if there was an error (mostlikely due to hitting the server too hard)
 		       }
                      })
     imageStream.on('error',function() {
