@@ -15,11 +15,15 @@ function TwitterImageRipper(screen_name){
   this.screen_name=screen_name
   this.friendsScreenNameList = []
   this.friendsList = []
+  this.friendsListFromDisk = []
+  this.friendsIds = []
+  this.friendsIdsFromDisk = []
   this.requestCounter = 0
   this.numberOfRequests = 0
   this.flag429 = false
   this.imageSize = 'large'
-
+  this.friendsIdsFilename = 'friendsIds.txt'
+  this.friendsScreenListFilename = 'friendsScreenList.txt'
   //is it bad practice to automatically create a client even if it isin't going to be used?
   this.twitterRestClient = new Twitter.RestClient(
     process.env.TWITTER_CONSUMER_KEY,
@@ -101,7 +105,7 @@ TwitterImageRipper.prototype.usersLookup = function (method) {
   }
 }
 
-//Meant to be run to get all friends
+//Meant to be run to get all friends and call the cb when there are no more friends to grab
 TwitterImageRipper.prototype.getFriendsList = function(result,cb) {
   // if (typeof cb === 'undefined'
   //   || typeof cb !== 'function' ) {
@@ -124,6 +128,7 @@ TwitterImageRipper.prototype.getFriendsList = function(result,cb) {
         console.trace('Error: ' + (error.code ? error.code + ' ' + error.message : error.message));
       }
     }
+    // if results were returned populate our friendsList array with them
     if (result) {
       result.users.forEach(function(element,index,fullArray) {
         //console.log(element)
@@ -171,23 +176,162 @@ TwitterImageRipper.prototype.outputFriendsList = function () {
   })
 }
 
-TwitterImageRipper.prototype.getFriendsIds = function () {
+TwitterImageRipper.prototype.writeFriendsListToDisk = function (context,cb) {
+  console.log('writeFriendsIdsToDisk')
+  //  console.log(this)
+  //  console.log(context)
+  // var that = this
+  if (context.friendsList.length>0) {
+    if (fs.exists(context.friendsScreenListFilename)){
+      console.log("overwriting "+context.friendsScreenListFilename)
+    }
+    fs.writeFile(context.friendsScreenListFilename,JSON.stringify(context.friendsList),function(err) {
+      if (err) throw err;
+      console.log(context.friendsScreenListFilename+' saved!');
+    })
+  } else {
+    console.log("friendsList length is 0")
+  }
+}
+
+TwitterImageRipper.prototype.getFriendsListFromDisk = function (cb) {
+  console.log('getFriendsListFromDisk')
+  var that = this;
+  console.log(this.friendsScreenListFilename);
+  fs.exists(this.friendsScreenListFilename,function(exists) {
+    if (!exists){
+      console.log(this.friendsScreenListFilename+" doesn't exit") ;
+    } else  {
+      fs.readFile(that.friendsScreenListFilename, function (err, data) {
+        if (err) throw err;
+        //console.log(data);
+//        return JSON.parse(data);
+       that.friendsListFromDisk = JSON.parse(data); //I couldn't think of another way to get the ids from disk and use a return and also use a callback on that data to perform the compare after the data was obtained.
+        //that.friendsListFromDisk.forEach(function(element,index,fullArray){
+        //console.log(element.screen_name)
+        //});
+        console.log('getFriendsListFromDisk 2');
+        cb()
+      });
+    }
+  });
+}
+
+TwitterImageRipper.prototype.writeFriendsIdsToDisk = function (context,cb) {
+  console.log('writeFriendsIdsToDisk')
+  //  console.log(this)
+  //console.log(context)
+  // var that = this
+  if (context.friendsIds.length>0) {
+    if (fs.exists(context.friendsIdsFilename)){
+      console.log("overwriting "+context.friendsIdsFilename)
+    }
+    fs.writeFile(context.friendsIdsFilename,JSON.stringify(context.friendsIds),function(err) {
+      if (err) throw err;
+      console.log(context.friendsIdsFilename+' saved!');
+    })
+  } else {
+    console.log("friendsIds length is 0")
+  }
+}
+
+TwitterImageRipper.prototype.getFriendsIdsFromDisk = function (cb) {
+  console.log('getFriendsIdsFromDisk')
+  var that = this;
+  console.log(this.friendsIdsFilename);
+  fs.exists(this.friendsIdsFilename,function(exists) {
+    if (!exists){
+      console.log(this.friendsIdsFilename+" doesn't exit") ;
+    } else  {
+      fs.readFile(that.friendsIdsFilename, function (err, data) {
+        if (err) throw err;
+        //console.log(data);
+//        return JSON.parse(data);
+       that.friendsIdsFromDisk = JSON.parse(data); //I couldn't think of another way to get the ids from disk and use a return and also use a callback on that data to perform the compare after the data was obtained.
+        console.log('getFriendsIdsFromDisk 2');
+        cb()
+      });
+    }
+  });
+}
+
+TwitterImageRipper.prototype.compareFriendsIds = function (cb) {
+  var that = this;
+  var compareResult =function() {
+    if (that.friendsIds.length>0 && that.friendsIdsFromDisk.length>0) {
+      //console.log(that.friendsIdsFromDisk.length)
+      if (that.friendsIds.length !== that.friendsIdsFromDisk.length){
+        console.log("friends ids length mismatch")
+        console.log("that.friendsIds.length:"+that.friendsIds.length+"  friendsIdsFromDisk.length"+ that.friendsIdsFromDisk.length)
+        cb({'lengthMatch':false}); //call the callback with a false value passed in
+      } else {
+        console.log("match");
+        cb({'lengthMatch':true}); //call the callback with a true value passed in
+      }
+    } else {
+      console.log("that.friendsIds.length that.friendsIdsFromDisk.length") 
+      console.log(that.friendsIds.length+" "+that.friendsIdsFromDisk.length)
+      console.log("fail")
+    }
+  }
+
+  this.getFriendsIdsFromDisk(compareResult)
+  this.getFriendsIds({},compareResult)
+}
+
+TwitterImageRipper.prototype.getFriendsIds = function (result,cb) {
+  console.log('getFriendsIds')
+  var that = this
   // my test case twitter user doesn't have that more than ~20 friends
-  this.twitterRestClient.friendsIds({'user_name':this.screen_name,'count':200}, function(error, result) {
+  // you can request up to 5000 followers ids. Use this function in conjunction with the getFriendsList to update local store
+  if (typeof result !== 'undefined') {
+    var next_cursor_str = result.next_cursor_str?result.next_cursor_str:'-1'
+  }
+  this.twitterRestClient.friendsIds({'user_name':this.screen_name,'count':5000,'cursor':next_cursor_str}, function(error, result) {
     if (error) {
-      console.trace('Error: ' + (error.code ? error.code + ' ' + error.message : error.message));
+      if (error.code === 429 /* too many requests */)
+      {
+        //if there were too many requests we call the same function again but after a 15 minute timeout
+        setTimeout( that.getFriendsIds.bind(that),15*60*1000,result,cb )
+      } else {
+        console.trace('Error: ' + (error.code ? error.code + ' ' + error.message : error.message));
+      }
     }
     if (result) {
       result.ids.forEach(function(element,index,fullArray) {
-	//console.log(element)
+        that.friendsIds.push(element)
       })
-      this.getMoreFriendsIds(result)
+      if (result.next_cursor_str !== '0' ){
+        that.getFriendsIds(result,cb)
+	console.log("calling getFriendsIds again")
+      } else {
+	console.log("calling callback")
+//callback to write the array to disk
+        cb(that) //we need to pass in our context to the callback
+
+      }
     }
   })		      
 }
 
+// Make a local check to see if we have the latest follower list;
+//  if the length of the returned list from twitter matches the length of the local list, proceed to download the images 
+//otherwise get the latest full list before downloading images.
+TwitterImageRipper.prototype.getFriendImagesLocalCheck = function () {
+  var that = this;
+  var callback = function(result) {
+    if (result['lengthMatch'] && result['lengthMatch'] === false ) {
+      that.getFriendsList({'next_cursor_str':'-1'},that.downloadFriendImages)
+    } else {
+      console.log("      that.downloadFriendImages(that)")
+      that.downloadFriendImages(that)
+    }
+  }
+  this.compareFriendsIds(callback);
+}
 
 TwitterImageRipper.prototype.getFriendImages = function () {
+//
   this.getFriendsList({'next_cursor_str':'-1'},this.downloadFriendImages)
   // this.freindsScreenNameList.forEach(function(element,index,fullArray) {
   //   console.log(element)
@@ -195,67 +339,95 @@ TwitterImageRipper.prototype.getFriendImages = function () {
 }
 
 TwitterImageRipper.prototype.downloadFriendImages = function (context) {
+console.log(context.friendsScreenNameList.length)
+console.log(context)
   context.friendsScreenNameList.forEach(function(element,index,fullArray){
-    context.saveImages(element)
+    if( context.flag429 === false) {
+      context.saveImages(element)
+    } else {
+      process.stdout.write("q")
+      setTimeout(context.saveImages.bind(context),15*60*1000,element)
+      setTimeout(context.reset429Flag.bind(context),14*60*1000)
+    }
     //console.log(element)
   })
 }
 
+//
+// Download the images of the provided screen_name to the constructor
+//
 TwitterImageRipper.prototype.downloadUserImages = function () {
   this.saveImages(this.screen_name)
 }
 
+TwitterImageRipper.prototype.reset429Flag=function () {
+  var time = new Date()
+  process.stdout.write("flag429=false "+time.toString())
+  this.flag429 = false
+}
 TwitterImageRipper.prototype.saveImages=function(screen_name){
   var query
-  if (screen_name[0] === "#") { //if search is a hashtag search
-    query = screen_name+' filter:images'
-  } else {
-    query='from:'+screen_name+' filter:images'
-  }
+  //console.log("this:"+typeof this)
+//  console.log(this)
   var that = this //save off our context for use inside of twittterSearchClient
-  this.twitterSearchClient.search({'q':query,'count':25},function(error,result) {
-    if (error) {
-      if (error.code === 429 /* too many requests */)
-      {
-        this.flag429 = true // instead of calling saveImages, call a function that clears the flag and then calls saveImages?
-        console.log("Error 429. Retry in 15 minutes when new queries allowed")
-        //if there were too many requests we call the same function again but after a 15 minute timeout
-        setTimeout( that.saveImages.bind(that),15*60*1000,screen_name )
-      } else {
-        console.trace('Error: ' + (error.code ? error.code + ' ' + error.message : error.message));
-      }
+  if (this.flag429 === true) {
+    setTimeout( that.saveImages.bind(that),15*60*1000,screen_name )
+    setTimeout( that.reset429Flag.bind(that),14*60*1000)
+    process.stdout.write("Q")
+  } else {
+    console.log("this.flag429:"+this.flag429+"for "+screen_name)
+    if (screen_name[0] === "#") { //if search is a hashtag search
+      query = screen_name+' filter:images'
+    } else {
+      query='from:'+screen_name+' filter:images'
     }
-    if (result) {
-      result.statuses.forEach(function(element,index,fullArray) {
-	if (typeof element.user !== 'undefined'
-	  && typeof element.user.name !=='undefined'
-	  && typeof  element.id_str !== 'undefined') {
-
-          that.extractImages(element,function(mediaURLArray){
-            //if we found photos
-	    if (typeof mediaURLArray !== 'undefined'
-              && mediaURLArray.length > 0){
-	      //console.log(element.user.name+"_"+element.id_str)
-              var filename = element.user.name+"_"+element.id_str
-              var data = {username: element.user.name, idstr:element.id_str}
-              var mediaURLArrayLength = mediaURLArray.length
-              mediaURLArray.forEach(function(element,index,fullArray) {  //save off message text as well? Then can merge the image and text using IM. 
-                //console.log(" media:"+element)
-                that.saveFile(element,data) //filename+"_"+index+".image")
-              })
-            } else { 
-	      console.log(element.user.name)
-              console.log(mediaURLArray.length)
-	    }
-          })
+    this.twitterSearchClient.search({'q':query,'count':25},function(error,result) {
+      if (error) {
+        if (error.code === 429 /* too many requests */)
+        {
+          //  console.log("that:"+typeof that)
+          console.log("that.flag429:"+that.flag429+"for "+screen_name) //are the searches all being kicked off before any of them return such that they are all setting the 429 flag?
+          that.flag429 = true // instead of calling saveImages, call a function that clears the flag and then calls saveImages?
+          console.log("Error 429. Retry in 15 minutes when new queries allowed")
+          //if there were too many requests we call the same function again but after a 15 minute timeout
+          setTimeout( that.saveImages.bind(that),15*60*1000,screen_name )
+          setTimeout( that.reset429Flag.bind(that),14*60*1000)
         } else {
-	  console.log('bad item')
-	}
+          console.trace('Error: ' + (error.code ? error.code + ' ' + error.message : error.message));
+        }
+      }
+      if (result) {
+        result.statuses.forEach(function(element,index,fullArray) {
+	  if (typeof element.user !== 'undefined'
+	    && typeof element.user.name !=='undefined'
+	    && typeof  element.id_str !== 'undefined') {
 
-      })
+            that.extractImages(element,function(mediaURLArray){
+              //if we found photos
+	      if (typeof mediaURLArray !== 'undefined'
+                && mediaURLArray.length > 0){
+	        //console.log(element.user.name+"_"+element.id_str)
+                var filename = element.user.name+"_"+element.id_str
+                var data = {username: element.user.name, idstr:element.id_str}
+                var mediaURLArrayLength = mediaURLArray.length
+                mediaURLArray.forEach(function(element,index,fullArray) {  //save off message text as well? Then can merge the image and text using IM. 
+                  //console.log(" media:"+element)
+                  that.saveFile(element,data) //filename+"_"+index+".image")
+                })
+              } else { 
+	        console.log(element.user.name)
+                console.log(mediaURLArray.length)
+	      }
+            })
+          } else {
+	    console.log('bad item')
+	  }
 
-    }
-  });
+        })
+
+      }
+    });
+  }
 }
 // // //var query='inktober filter:images'
 // // //var query='from:ericcanete filter:images'
@@ -444,6 +616,8 @@ module.exports = TwitterImageRipper
 //TODO: work on spidering of 
 //TODO: work on ranking media based on likes/retweets/comments
 //TODO: make getFriendList more generic so that the json object is saved off so we can access other details like the personal website of your followers etc, stick in db? local mongo instance?
+// TODO: create updateFriendsList which will update the local store of FriendsList, set as a cronjob?
+// TODO: use local friendsList data with fallback to manually getting getFriendList
 //TODO: auto prevent hitting the rate limit of 150 requests
 //--TODO: create function to allow image scraping for a input search term, i.e. the constructor parameter could be used as the search term as well.
 //TODO: use setInterval or use a cron job to continually get images.
