@@ -339,8 +339,8 @@ TwitterImageRipper.prototype.getFriendImages = function () {
 }
 
 TwitterImageRipper.prototype.downloadFriendImages = function (context) {
-console.log(context.friendsScreenNameList.length)
-console.log(context)
+//console.log(context.friendsScreenNameList.length)
+//console.log(context)
   context.friendsScreenNameList.forEach(function(element,index,fullArray){
     if( context.flag429 === false) {
       context.saveImages(element)
@@ -626,3 +626,17 @@ module.exports = TwitterImageRipper
 //TODO: output csv list of data, json?
 //TODO: save off the following list. Check it periodically and update. Allow them to force update if they know the local list is out of date.
 //TODO: allow syncing of the local list, i.e. if there is a user in the local list, then use the api to follow them. 
+
+/* How big of an array before I should use a data structure?
+ * 
+ * I'm interacting with the Twitter API to get my list of friends (people I follow). 
+ * You can get up to 5000 friends ids at a time, but only 200 full friend profiles per request. 
+ * A)My plan is to initially populate some json with the full friend profiles and save it off to a file. 
+ * B)My plan is to initially populate some json with the friend ids.
+ * Upon subsequent runs I would load the json and perform a getFriendsIds call and see if the number of json records matched the number of getFriendsIds. 
+ * 
+ * A)If the numbers are mismatched, I'd loop through getting all friend profiles, 200 at a time. No point in doing a search since just grabbed all the profiles so just dump old dataset and replace.
+ * B)If the numbers are mismatched, create a list of the missing ids and the hit users/lookup with the ids and add to our json these missing profiles
+ * 
+ * Web shit is slow; so finding out which records are missing and then creating a request may be just as slow as going directly to performing the X http requests and getting all your friends. B-tree ish in that sense that watiting for the next results is costly.
+ */
