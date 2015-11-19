@@ -4,7 +4,7 @@
 env = process.env.NODE_ENV || 'development';
 
 //var Twitter = require('node-twitter');
-var Twitter = require('../../node-twitter/lib/Twitter');
+var Twitter = require('../../node-twitter/lib/Twitter');  //YOU MUST download and use my version of node-twitter from Github. I added some functionality that isn't in the mainline one. 
 var fs = require('fs'),
     request = require('request'),
     http = require('http'),
@@ -371,7 +371,7 @@ TwitterImageRipper.prototype.saveImages=function(screen_name){
 //  console.log(this)
   var that = this //save off our context for use inside of twittterSearchClient
   if (this.flag429 === true) {
-    setTimeout( that.saveImages.bind(that),15*60*1000,screen_name )
+    setTimeout( that.saveImages.bind(that),15*60*1000,screen_name ) //wait 15mins before trying again
     setTimeout( that.reset429Flag.bind(that),14*60*1000)
     process.stdout.write("Q")
   } else {
@@ -602,7 +602,7 @@ TwitterImageRipper.prototype.saveFile = function(url,data/*filename*/) {
                          that.saveFile(url,filename);//call ourself again if there was an error (mostlikely due to hitting the server too hard)
 		       }
                      })
-    imageStream.on('error',function() {
+    imageStream.on('error',function(error) {
       if (error) {
         console.log(error)
       }

@@ -1,6 +1,9 @@
 var startTime = new Date()
 var TIR=require('./app.js')
 var tir = new TIR('cuckoo5egg')
+
+console.log("I should check the cached riendslist and simply check if the number of friends has changed and use that to determine if we want to update");// that should speed things up some
+
 //var tir = new TIR('ericcanete')
 //var tir = new TIR('bengal_art')
 //tir.downloadUserImages()

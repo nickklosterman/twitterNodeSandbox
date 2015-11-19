@@ -42,4 +42,9 @@ Sandbox for playing with [node-twitter](https://www.npmjs.org/package/node-twitt
 
 twitterStream
 -------------
-Twitter Stream tutorial from [InfomIT](http://www.informit.com/articles/article.aspx?p=1947699&seqNum=4) which uses [ntwitter](https://www.npmjs.org/package/ntwitter) 
+Twitter Stream tutorial from [InfomIT](http://www.informit.com/articles/article.aspx?p=1947699&seqNum=4) which uses [ntwitter](https://www.npmjs.org/package/ntwitter)
+
+twitterimageripper
+------------------
+You *must* use my version of node-twitter or this script won't work.
+It will use the twitter followers of the input user to download any image media posted by them.
