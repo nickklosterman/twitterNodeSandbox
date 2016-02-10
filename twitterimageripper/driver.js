@@ -5,7 +5,10 @@ var tir = new TIR('cuckoo5egg')
 //var tir = new TIR('bengal_art')
 //tir.downloadUserImages()
 //tir.getFriendsList()
+
   tir.getFriendImages()
+tir.getFriendImages()
+
 //tir.getFriendWebsites2()
 //tir.getFriendWebsites()
 //tir.findRealWebsiteURL()
